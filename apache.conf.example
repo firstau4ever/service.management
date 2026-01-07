@@ -1,0 +1,25 @@
+# Пример конфигурации Apache для Service Management API
+# Этот блок нужно добавить в существующий VirtualHost для mo.medaccreditation.online
+# 
+# ВАЖНО: Замените 5000 на фактический порт, используемый приложением
+# (скрипт deploy.sh автоматически определит и покажет используемый порт)
+#
+# Включить необходимые модули (если еще не включены):
+# sudo a2enmod proxy
+# sudo a2enmod proxy_http
+# sudo a2enmod headers
+
+<Location /servise/>
+    # Проксирование на локальный Flask/Gunicorn сервер
+    # Порт может отличаться от 5000, если он был занят при установке
+    ProxyPass http://127.0.0.1:5000/servise/
+    ProxyPassReverse http://127.0.0.1:5000/servise/
+    
+    # Заголовки
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    
+    # Таймауты
+    ProxyTimeout 60
+</Location>
+
