@@ -454,65 +454,166 @@ echo ""
 echo -e "${YELLOW}[7/7] Настройка веб-сервера...${NC}"
 
 if [ "$WEB_SERVER" = "nginx" ]; then
-    NGINX_CONFIG="/etc/nginx/sites-available/default"
-    if [ -f "$NGINX_CONFIG" ]; then
-        if grep -q "location /servise/" $NGINX_CONFIG; then
-            echo -e "${YELLOW}Конфигурация для /servise/ уже существует в $NGINX_CONFIG${NC}"
-            # Обновляем порт в существующей конфигурации если нужно
-            if grep -q "proxy_pass http://127.0.0.1:" $NGINX_CONFIG; then
-                sed -i "s|proxy_pass http://127.0.0.1:[0-9]*;|proxy_pass http://127.0.0.1:$APP_PORT;|g" $NGINX_CONFIG
-                echo -e "${GREEN}Порт обновлен в конфигурации Nginx${NC}"
+    # Поиск конфигурационных файлов Nginx
+    NGINX_CONFIGS_FOUND=0
+    NGINX_CONFIGS_LIST=""
+    
+    # Проверяем sites-available
+    if [ -d "/etc/nginx/sites-available" ]; then
+        for config in /etc/nginx/sites-available/*; do
+            if [ -f "$config" ] && [ -L "/etc/nginx/sites-enabled/$(basename $config)" ] 2>/dev/null; then
+                NGINX_CONFIGS_FOUND=$((NGINX_CONFIGS_FOUND + 1))
+                NGINX_CONFIGS_LIST="$NGINX_CONFIGS_LIST\n  - $config (активен)"
+            elif [ -f "$config" ]; then
+                NGINX_CONFIGS_FOUND=$((NGINX_CONFIGS_FOUND + 1))
+                NGINX_CONFIGS_LIST="$NGINX_CONFIGS_LIST\n  - $config"
             fi
-        else
-            echo -e "${YELLOW}Добавьте следующий блок в server блок вашего домена в $NGINX_CONFIG:${NC}"
-            echo ""
-            echo "location /servise/ {"
-            echo "    proxy_pass http://127.0.0.1:$APP_PORT;"
-            echo "    proxy_set_header Host \$host;"
-            echo "    proxy_set_header X-Real-IP \$remote_addr;"
-            echo "    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
-            echo "    proxy_set_header X-Forwarded-Proto \$scheme;"
-            echo "    proxy_connect_timeout 60s;"
-            echo "    proxy_send_timeout 60s;"
-            echo "    proxy_read_timeout 60s;"
-            echo "    proxy_buffering off;"
-            echo "}"
-            echo ""
-            echo -e "${YELLOW}После добавления выполните: nginx -t && systemctl reload nginx${NC}"
+        done
+    fi
+    
+    # Проверяем conf.d
+    if [ -d "/etc/nginx/conf.d" ]; then
+        for config in /etc/nginx/conf.d/*.conf; do
+            if [ -f "$config" ]; then
+                NGINX_CONFIGS_FOUND=$((NGINX_CONFIGS_FOUND + 1))
+                NGINX_CONFIGS_LIST="$NGINX_CONFIGS_LIST\n  - $config"
+            fi
+        done
+    fi
+    
+    # Проверяем основной конфиг
+    if [ -f "/etc/nginx/nginx.conf" ]; then
+        NGINX_CONFIGS_FOUND=$((NGINX_CONFIGS_FOUND + 1))
+        NGINX_CONFIGS_LIST="$NGINX_CONFIGS_LIST\n  - /etc/nginx/nginx.conf"
+    fi
+    
+    # Пытаемся найти конфигурацию с /servise/
+    NGINX_CONFIG_WITH_SERVISE=""
+    if [ -d "/etc/nginx/sites-available" ]; then
+        for config in /etc/nginx/sites-available/*; do
+            if [ -f "$config" ] && grep -q "location /servise/" "$config" 2>/dev/null; then
+                NGINX_CONFIG_WITH_SERVISE="$config"
+                break
+            fi
+        done
+    fi
+    
+    if [ -n "$NGINX_CONFIG_WITH_SERVISE" ]; then
+        echo -e "${YELLOW}Конфигурация для /servise/ уже существует в $NGINX_CONFIG_WITH_SERVISE${NC}"
+        # Обновляем порт в существующей конфигурации если нужно
+        if grep -q "proxy_pass http://127.0.0.1:" "$NGINX_CONFIG_WITH_SERVISE" 2>/dev/null; then
+            sed -i "s|proxy_pass http://127.0.0.1:[0-9]*;|proxy_pass http://127.0.0.1:$APP_PORT;|g" "$NGINX_CONFIG_WITH_SERVISE"
+            echo -e "${GREEN}Порт обновлен в конфигурации Nginx${NC}"
         fi
     else
-        echo -e "${YELLOW}Файл конфигурации Nginx не найден. Добавьте конфигурацию вручную.${NC}"
-        echo -e "${YELLOW}Пример конфигурации: $PROJECT_DIR/nginx.conf.example${NC}"
+        echo -e "${YELLOW}Настройка Nginx:${NC}"
+        if [ "$NGINX_CONFIGS_FOUND" -gt 0 ]; then
+            echo -e "${YELLOW}Найдено конфигурационных файлов: $NGINX_CONFIGS_FOUND${NC}"
+            echo -e "${YELLOW}Доступные конфигурации:$NGINX_CONFIGS_LIST${NC}"
+            echo ""
+            echo -e "${YELLOW}Добавьте следующий блок в server блок нужного домена (выберите подходящий файл из списка выше):${NC}"
+        else
+            echo -e "${YELLOW}Добавьте следующий блок в server блок вашего домена в конфигурационном файле Nginx:${NC}"
+        fi
+        echo ""
+        echo "location /servise/ {"
+        echo "    proxy_pass http://127.0.0.1:$APP_PORT;"
+        echo "    proxy_set_header Host \$host;"
+        echo "    proxy_set_header X-Real-IP \$remote_addr;"
+        echo "    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
+        echo "    proxy_set_header X-Forwarded-Proto \$scheme;"
+        echo "    proxy_connect_timeout 60s;"
+        echo "    proxy_send_timeout 60s;"
+        echo "    proxy_read_timeout 60s;"
+        echo "    proxy_buffering off;"
+        echo "}"
+        echo ""
+        if [ "$NGINX_CONFIGS_FOUND" -gt 0 ]; then
+            echo -e "${YELLOW}После добавления выполните: nginx -t && systemctl reload nginx${NC}"
+        else
+            echo -e "${YELLOW}Пример конфигурации: $PROJECT_DIR/nginx.conf.example${NC}"
+            echo -e "${YELLOW}После добавления выполните: nginx -t && systemctl reload nginx${NC}"
+        fi
     fi
     
 elif [ "$WEB_SERVER" = "apache2" ]; then
-    APACHE_CONFIG="/etc/apache2/sites-available/000-default.conf"
-    if [ -f "$APACHE_CONFIG" ]; then
-        if grep -q "Location /servise/" $APACHE_CONFIG; then
-            echo -e "${YELLOW}Конфигурация для /servise/ уже существует в $APACHE_CONFIG${NC}"
-            # Обновляем порт в существующей конфигурации если нужно
-            if grep -q "ProxyPass http://127.0.0.1:" $APACHE_CONFIG; then
-                sed -i "s|ProxyPass http://127.0.0.1:[0-9]*/servise/|ProxyPass http://127.0.0.1:$APP_PORT/servise/|g" $APACHE_CONFIG
-                sed -i "s|ProxyPassReverse http://127.0.0.1:[0-9]*/servise/|ProxyPassReverse http://127.0.0.1:$APP_PORT/servise/|g" $APACHE_CONFIG
-                echo -e "${GREEN}Порт обновлен в конфигурации Apache${NC}"
+    # Поиск конфигурационных файлов Apache
+    APACHE_CONFIGS_FOUND=0
+    APACHE_CONFIGS_LIST=""
+    
+    # Проверяем sites-available
+    if [ -d "/etc/apache2/sites-available" ]; then
+        for config in /etc/apache2/sites-available/*.conf; do
+            if [ -f "$config" ]; then
+                # Проверяем активен ли сайт
+                SITE_NAME=$(basename "$config" .conf)
+                if [ -L "/etc/apache2/sites-enabled/$SITE_NAME.conf" ] 2>/dev/null || [ -L "/etc/apache2/sites-enabled/$(basename $config)" ] 2>/dev/null; then
+                    APACHE_CONFIGS_FOUND=$((APACHE_CONFIGS_FOUND + 1))
+                    APACHE_CONFIGS_LIST="$APACHE_CONFIGS_LIST\n  - $config (активен)"
+                else
+                    APACHE_CONFIGS_FOUND=$((APACHE_CONFIGS_FOUND + 1))
+                    APACHE_CONFIGS_LIST="$APACHE_CONFIGS_LIST\n  - $config"
+                fi
             fi
-        else
-            echo -e "${YELLOW}Добавьте следующий блок в VirtualHost вашего домена в $APACHE_CONFIG:${NC}"
-            echo ""
-            echo "<Location /servise/>"
-            echo "    ProxyPass http://127.0.0.1:$APP_PORT/servise/"
-            echo "    ProxyPassReverse http://127.0.0.1:$APP_PORT/servise/"
-            echo "    ProxyPreserveHost On"
-            echo "    RequestHeader set X-Forwarded-Proto \"https\""
-            echo "    ProxyTimeout 60"
-            echo "</Location>"
-            echo ""
-            echo -e "${YELLOW}Включите модули: a2enmod proxy proxy_http headers${NC}"
-            echo -e "${YELLOW}После добавления выполните: apache2ctl configtest && systemctl reload apache2${NC}"
+        done
+    fi
+    
+    # Проверяем conf-available (для дополнительных конфигураций)
+    if [ -d "/etc/apache2/conf-available" ]; then
+        for config in /etc/apache2/conf-available/*.conf; do
+            if [ -f "$config" ]; then
+                APACHE_CONFIGS_FOUND=$((APACHE_CONFIGS_FOUND + 1))
+                APACHE_CONFIGS_LIST="$APACHE_CONFIGS_LIST\n  - $config"
+            fi
+        done
+    fi
+    
+    # Пытаемся найти конфигурацию с /servise/
+    APACHE_CONFIG_WITH_SERVISE=""
+    if [ -d "/etc/apache2/sites-available" ]; then
+        for config in /etc/apache2/sites-available/*.conf; do
+            if [ -f "$config" ] && grep -q "Location /servise/" "$config" 2>/dev/null; then
+                APACHE_CONFIG_WITH_SERVISE="$config"
+                break
+            fi
+        done
+    fi
+    
+    if [ -n "$APACHE_CONFIG_WITH_SERVISE" ]; then
+        echo -e "${YELLOW}Конфигурация для /servise/ уже существует в $APACHE_CONFIG_WITH_SERVISE${NC}"
+        # Обновляем порт в существующей конфигурации если нужно
+        if grep -q "ProxyPass http://127.0.0.1:" "$APACHE_CONFIG_WITH_SERVISE" 2>/dev/null; then
+            sed -i "s|ProxyPass http://127.0.0.1:[0-9]*/servise/|ProxyPass http://127.0.0.1:$APP_PORT/servise/|g" "$APACHE_CONFIG_WITH_SERVISE"
+            sed -i "s|ProxyPassReverse http://127.0.0.1:[0-9]*/servise/|ProxyPassReverse http://127.0.0.1:$APP_PORT/servise/|g" "$APACHE_CONFIG_WITH_SERVISE"
+            echo -e "${GREEN}Порт обновлен в конфигурации Apache${NC}"
         fi
     else
-        echo -e "${YELLOW}Файл конфигурации Apache не найден. Добавьте конфигурацию вручную.${NC}"
-        echo -e "${YELLOW}Пример конфигурации: $PROJECT_DIR/apache.conf.example${NC}"
+        echo -e "${YELLOW}Настройка Apache:${NC}"
+        if [ "$APACHE_CONFIGS_FOUND" -gt 0 ]; then
+            echo -e "${YELLOW}Найдено конфигурационных файлов: $APACHE_CONFIGS_FOUND${NC}"
+            echo -e "${YELLOW}Доступные конфигурации:$APACHE_CONFIGS_LIST${NC}"
+            echo ""
+            echo -e "${YELLOW}Добавьте следующий блок в VirtualHost нужного домена (выберите подходящий файл из списка выше):${NC}"
+        else
+            echo -e "${YELLOW}Добавьте следующий блок в VirtualHost вашего домена в конфигурационном файле Apache:${NC}"
+        fi
+        echo ""
+        echo "<Location /servise/>"
+        echo "    ProxyPass http://127.0.0.1:$APP_PORT/servise/"
+        echo "    ProxyPassReverse http://127.0.0.1:$APP_PORT/servise/"
+        echo "    ProxyPreserveHost On"
+        echo "    RequestHeader set X-Forwarded-Proto \"https\""
+        echo "    ProxyTimeout 60"
+        echo "</Location>"
+        echo ""
+        echo -e "${YELLOW}Включите модули (если еще не включены):${NC}"
+        echo -e "${YELLOW}  sudo a2enmod proxy proxy_http headers${NC}"
+        if [ "$APACHE_CONFIGS_FOUND" -gt 0 ]; then
+            echo -e "${YELLOW}После добавления выполните: apache2ctl configtest && systemctl reload apache2${NC}"
+        else
+            echo -e "${YELLOW}Пример конфигурации: $PROJECT_DIR/apache.conf.example${NC}"
+            echo -e "${YELLOW}После добавления выполните: apache2ctl configtest && systemctl reload apache2${NC}"
+        fi
     fi
 else
     echo -e "${YELLOW}Веб-сервер не обнаружен. Настройте проксирование вручную.${NC}"
