@@ -65,12 +65,13 @@ def read_service_list(file_path):
     """
     Чтение списка сервисов из файла.
     Каждая строка - один сервис, пустые строки и строки начинающиеся с # игнорируются.
+    Имена сервисов нормализуются (добавляется .service если его нет).
     
     Args:
         file_path: путь к файлу со списком
     
     Returns:
-        list: список имен сервисов
+        list: список нормализованных имен сервисов (всегда с .service)
     """
     services = []
     if os.path.exists(file_path):
@@ -80,7 +81,10 @@ def read_service_list(file_path):
                     line = line.strip()
                     # Пропускаем пустые строки и комментарии
                     if line and not line.startswith('#'):
-                        services.append(line)
+                        # Нормализуем имя сервиса (добавляем .service если его нет)
+                        normalized = normalize_service_name(line)
+                        if normalized:
+                            services.append(normalized)
         except Exception:
             # В случае ошибки чтения файла возвращаем пустой список
             pass
@@ -96,25 +100,32 @@ def is_service_allowed(service_name):
     - Если белый список не задан или пуст: разрешены все, кроме тех что в черном списке
     - Черный список: запрещены сервисы из черного списка
     - Файлы читаются при каждом запросе (динамически), перезагрузка не требуется
+    - Имена сервисов нормализуются (добавляется .service если его нет) для сравнения
     
     Args:
-        service_name: имя сервиса для проверки
+        service_name: имя сервиса для проверки (может быть с .service или без)
     
     Returns:
         bool: True если сервис разрешен, False если запрещен
     """
+    # Нормализуем имя сервиса из запроса
+    normalized_service = normalize_service_name(service_name)
+    if not normalized_service:
+        return False
+    
     # Читаем списки из файлов при каждом запросе (динамически)
+    # Имена в списках уже нормализованы при чтении
     whitelist = read_service_list(WHITELIST_FILE)
     blacklist = read_service_list(BLACKLIST_FILE)
     
     # Если белый список задан и не пуст - проверяем его первым
     if whitelist:
-        if service_name not in whitelist:
+        if normalized_service not in whitelist:
             return False
     
     # Проверяем черный список
     if blacklist:
-        if service_name in blacklist:
+        if normalized_service in blacklist:
             return False
     
     # Если белый список не задан или пуст, и сервис не в черном списке - разрешен
