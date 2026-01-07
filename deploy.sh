@@ -489,8 +489,6 @@ if [ -n "$BLACKLIST" ]; then
 else
     sed -i "s|SERVICE_MANAGEMENT_BLACKLIST=|SERVICE_MANAGEMENT_BLACKLIST=|g" /etc/systemd/system/$SERVICE_NAME.service
 fi
-    echo -e "${GREEN}Токен установлен в systemd service файл${NC}"
-fi
 
 systemctl daemon-reload
 systemctl enable $SERVICE_NAME
