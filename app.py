@@ -18,16 +18,9 @@ AUTH_TOKEN = os.environ.get('SERVICE_MANAGEMENT_TOKEN', 'change_me_in_production
 # Валидация имени сервиса: только буквы, цифры, дефисы, точки и подчеркивания
 SERVICE_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+\.service$')
 
-# Белый и черный списки сервисов
-# Белый список: если задан, разрешены только сервисы из этого списка
-# Черный список: если задан, запрещены сервисы из этого списка
-# Формат: список через запятую, например: "nginx.service,apache2.service"
-WHITELIST_STR = os.environ.get('SERVICE_MANAGEMENT_WHITELIST', '').strip()
-BLACKLIST_STR = os.environ.get('SERVICE_MANAGEMENT_BLACKLIST', '').strip()
-
-# Парсинг списков
-SERVICE_WHITELIST = [s.strip() for s in WHITELIST_STR.split(',')] if WHITELIST_STR else []
-SERVICE_BLACKLIST = [s.strip() for s in BLACKLIST_STR.split(',')] if BLACKLIST_STR else []
+# Пути к файлам со списками сервисов
+WHITELIST_FILE = '/opt/service-management/whitelist.txt'
+BLACKLIST_FILE = '/opt/service-management/blacklist.txt'
 
 
 def validate_service_name(service_name):
@@ -45,15 +38,41 @@ def validate_token(token):
     return token == AUTH_TOKEN
 
 
+def read_service_list(file_path):
+    """
+    Чтение списка сервисов из файла.
+    Каждая строка - один сервис, пустые строки и строки начинающиеся с # игнорируются.
+    
+    Args:
+        file_path: путь к файлу со списком
+    
+    Returns:
+        list: список имен сервисов
+    """
+    services = []
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    # Пропускаем пустые строки и комментарии
+                    if line and not line.startswith('#'):
+                        services.append(line)
+        except Exception:
+            # В случае ошибки чтения файла возвращаем пустой список
+            pass
+    return services
+
+
 def is_service_allowed(service_name):
     """
     Проверка разрешен ли сервис для управления по белого/черного спискам.
     
     Логика:
-    - Если задан белый список: разрешены только сервисы из белого списка
-    - Если задан черный список: запрещены сервисы из черного списка
-    - Если заданы оба: сначала проверяется белый список, потом черный
-    - Если ни один не задан: все разрешено
+    - Если белый список существует и не пуст: разрешены только сервисы из белого списка
+    - Если белый список не задан или пуст: разрешены все, кроме тех что в черном списке
+    - Черный список: запрещены сервисы из черного списка
+    - Файлы читаются при каждом запросе (динамически), перезагрузка не требуется
     
     Args:
         service_name: имя сервиса для проверки
@@ -61,17 +80,21 @@ def is_service_allowed(service_name):
     Returns:
         bool: True если сервис разрешен, False если запрещен
     """
-    # Если задан белый список, проверяем его первым
-    if SERVICE_WHITELIST:
-        if service_name not in SERVICE_WHITELIST:
+    # Читаем списки из файлов при каждом запросе (динамически)
+    whitelist = read_service_list(WHITELIST_FILE)
+    blacklist = read_service_list(BLACKLIST_FILE)
+    
+    # Если белый список задан и не пуст - проверяем его первым
+    if whitelist:
+        if service_name not in whitelist:
             return False
     
-    # Если задан черный список, проверяем его
-    if SERVICE_BLACKLIST:
-        if service_name in SERVICE_BLACKLIST:
+    # Проверяем черный список
+    if blacklist:
+        if service_name in blacklist:
             return False
     
-    # Если ни один список не задан или сервис прошел все проверки
+    # Если белый список не задан или пуст, и сервис не в черном списке - разрешен
     return True
 
 
