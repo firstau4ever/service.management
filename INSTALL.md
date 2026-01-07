@@ -69,7 +69,7 @@ sudo nginx -t && sudo systemctl reload nginx
 curl http://127.0.0.1:5000/health
 
 # Через веб-сервер (используйте токен из вывода скрипта)
-curl "https://your-domain.com/servise/status/md-backend.service?TOKEN=your_token"
+curl "https://your-domain.com/servise/status/nginx.service?TOKEN=your_token"
 ```
 
 ### 3. Получение конфигурации

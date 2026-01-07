@@ -142,7 +142,7 @@ curl http://127.0.0.1:5000/health
 
 ### Проверка через веб-сервер
 ```bash
-curl "https://your-domain.com/servise/status/md-backend.service?TOKEN=your_token"
+curl "https://your-domain.com/servise/status/nginx.service?TOKEN=your_token"
 ```
 
 ### Получение конфигурации

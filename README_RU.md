@@ -71,16 +71,16 @@ service.management/
 
 ```bash
 # Статус сервиса
-curl "https://your-domain.com/servise/status/md-backend.service?TOKEN=your_token"
+curl "https://your-domain.com/servise/status/nginx.service?TOKEN=your_token"
 
 # Перезагрузка сервиса
-curl "https://your-domain.com/servise/restart/md-backend.service?TOKEN=your_token"
+curl "https://your-domain.com/servise/restart/nginx.service?TOKEN=your_token"
 
 # Запуск сервиса
-curl "https://your-domain.com/servise/start/md-backend.service?TOKEN=your_token"
+curl "https://your-domain.com/servise/start/nginx.service?TOKEN=your_token"
 
 # Остановка сервиса
-curl "https://your-domain.com/servise/stop/md-backend.service?TOKEN=your_token"
+curl "https://your-domain.com/servise/stop/nginx.service?TOKEN=your_token"
 ```
 
 ---
