@@ -26,7 +26,6 @@ service.management/
 ├── REQUIREMENTS.md                 # Требования к серверу
 ├── FAQ.md                          # Часто задаваемые вопросы
 ├── CHECKLIST.md                    # Чеклист готовности
-├── SETUP.md                        # Подробная инструкция (legacy)
 └── PROJECT_STRUCTURE.md            # Этот файл
 ```
 
