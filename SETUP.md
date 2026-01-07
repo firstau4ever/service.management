@@ -41,7 +41,7 @@ sudo -u www-data venv/bin/pip install -r requirements.txt
 
 Скрипт `deploy.sh` запросит домен интерактивно при установке. Вы также можете задать его через переменную окружения:
 ```bash
-export SERVICE_MANAGEMENT_DOMAIN=mo.medaccreditation.online
+export SERVICE_MANAGEMENT_DOMAIN=your-domain.com
 ```
 
 ### 5. Настройка порта (опционально)
@@ -81,7 +81,7 @@ sudo systemctl start service-management
 
 ### 8. Настройка Nginx
 
-Добавьте в конфигурацию вашего сайта (обычно `/etc/nginx/sites-available/default` или файл для `mo.medaccreditation.online`):
+Добавьте в конфигурацию вашего сайта (обычно `/etc/nginx/sites-available/default` или файл для вашего домена):
 
 ```nginx
 location /servise/ {

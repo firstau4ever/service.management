@@ -39,10 +39,10 @@ GET /servise/restart/{service_name}?TOKEN=your_token
 
 ```bash
 # Статус сервиса
-curl "https://mo.medaccreditation.online/servise/status/md-backend.service?TOKEN=your_secret_token"
+curl "https://your-domain.com/servise/status/md-backend.service?TOKEN=your_secret_token"
 
 # Перезагрузка сервиса
-curl "https://mo.medaccreditation.online/servise/restart/md-backend.service?TOKEN=your_secret_token"
+curl "https://your-domain.com/servise/restart/md-backend.service?TOKEN=your_secret_token"
 ```
 
 ## Требования к серверу
