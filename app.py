@@ -16,17 +16,40 @@ app = Flask(__name__)
 AUTH_TOKEN = os.environ.get('SERVICE_MANAGEMENT_TOKEN', 'change_me_in_production')
 
 # Валидация имени сервиса: только буквы, цифры, дефисы, точки и подчеркивания
-SERVICE_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+\.service$')
+# Поддерживает как с .service, так и без него
+SERVICE_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+(\.service)?$')
 
 # Пути к файлам со списками сервисов
 WHITELIST_FILE = '/opt/service-management/whitelist.txt'
 BLACKLIST_FILE = '/opt/service-management/blacklist.txt'
 
 
+def normalize_service_name(service_name):
+    """
+    Нормализация имени сервиса - добавляет .service если его нет.
+    Это позволяет использовать как nginx, так и nginx.service
+    
+    Args:
+        service_name: имя сервиса (может быть с .service или без)
+    
+    Returns:
+        str: нормализованное имя сервиса (всегда с .service)
+    """
+    if not service_name:
+        return None
+    # Убираем пробелы
+    service_name = service_name.strip()
+    # Если уже заканчивается на .service, возвращаем как есть
+    if service_name.endswith('.service'):
+        return service_name
+    # Иначе добавляем .service
+    return f"{service_name}.service"
+
+
 def validate_service_name(service_name):
     """
     Валидация имени сервиса для защиты от инъекций.
-    Разрешает только безопасные символы и требует расширение .service
+    Разрешает только безопасные символы. Поддерживает как с .service, так и без него.
     """
     if not service_name:
         return False
@@ -152,10 +175,15 @@ def get_status(service_name):
     if not validate_service_name(service_name):
         return jsonify({'error': 'Invalid service name'}), 400
     
+    # Нормализуем имя сервиса для использования в systemctl
+    normalized_service = normalize_service_name(service_name)
+    if not normalized_service:
+        return jsonify({'error': 'Invalid service name'}), 400
+    
     if not is_service_allowed(service_name):
         return jsonify({'error': 'Service is not allowed (whitelist/blacklist restriction)'}), 403
     
-    success, output, error = execute_systemctl_command('status', service_name)
+    success, output, error = execute_systemctl_command('status', normalized_service)
     
     if success:
         return jsonify({
@@ -182,10 +210,15 @@ def start_service(service_name):
     if not validate_service_name(service_name):
         return jsonify({'error': 'Invalid service name'}), 400
     
+    # Нормализуем имя сервиса для использования в systemctl
+    normalized_service = normalize_service_name(service_name)
+    if not normalized_service:
+        return jsonify({'error': 'Invalid service name'}), 400
+    
     if not is_service_allowed(service_name):
         return jsonify({'error': 'Service is not allowed (whitelist/blacklist restriction)'}), 403
     
-    success, output, error = execute_systemctl_command('start', service_name)
+    success, output, error = execute_systemctl_command('start', normalized_service)
     
     if success:
         return jsonify({
@@ -214,10 +247,15 @@ def stop_service(service_name):
     if not validate_service_name(service_name):
         return jsonify({'error': 'Invalid service name'}), 400
     
+    # Нормализуем имя сервиса для использования в systemctl
+    normalized_service = normalize_service_name(service_name)
+    if not normalized_service:
+        return jsonify({'error': 'Invalid service name'}), 400
+    
     if not is_service_allowed(service_name):
         return jsonify({'error': 'Service is not allowed (whitelist/blacklist restriction)'}), 403
     
-    success, output, error = execute_systemctl_command('stop', service_name)
+    success, output, error = execute_systemctl_command('stop', normalized_service)
     
     if success:
         return jsonify({
@@ -246,10 +284,15 @@ def restart_service(service_name):
     if not validate_service_name(service_name):
         return jsonify({'error': 'Invalid service name'}), 400
     
+    # Нормализуем имя сервиса для использования в systemctl
+    normalized_service = normalize_service_name(service_name)
+    if not normalized_service:
+        return jsonify({'error': 'Invalid service name'}), 400
+    
     if not is_service_allowed(service_name):
         return jsonify({'error': 'Service is not allowed (whitelist/blacklist restriction)'}), 403
     
-    success, output, error = execute_systemctl_command('restart', service_name)
+    success, output, error = execute_systemctl_command('restart', normalized_service)
     
     if success:
         return jsonify({
