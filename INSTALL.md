@@ -1,5 +1,21 @@
 # Инструкция по установке
 
+## Получение проекта
+
+### Установка из GitHub (рекомендуется)
+
+```bash
+# Клонируйте репозиторий
+git clone https://github.com/firstau4ever/service.management.git
+cd service.management
+```
+
+### Если проект уже на сервере
+
+```bash
+cd /path/to/service.management
+```
+
 ## Быстрая установка (рекомендуется)
 
 ```bash

@@ -4,8 +4,12 @@
 
 ### 1. Скачайте проект
 ```bash
-# Если проект уже на сервере, перейдите в директорию
-cd /path/to/service.management
+# Клонируйте репозиторий из GitHub
+git clone https://github.com/firstau4ever/service.management.git
+cd service.management
+
+# Или если проект уже на сервере, перейдите в директорию
+# cd /path/to/service.management
 ```
 
 ### 2. Запустите установку

@@ -63,6 +63,16 @@ curl "https://your-domain.com/servise/restart/nginx.service?TOKEN=your_secret_to
 
 ## Установка
 
+### 1. Получение проекта
+
+```bash
+# Клонируйте репозиторий из GitHub
+git clone https://github.com/firstau4ever/service.management.git
+cd service.management
+```
+
+### 2. Запуск установки
+
 ```bash
 sudo ./deploy.sh
 ```
