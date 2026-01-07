@@ -472,6 +472,23 @@ if grep -q "CHANGE_THIS_TOKEN" /etc/systemd/system/$SERVICE_NAME.service; then
         echo -e "${GREEN}Токен установлен после повторной попытки${NC}"
     fi
 else
+    echo -e "${GREEN}Токен установлен${NC}"
+fi
+
+# Заменяем белый и черный списки
+if [ -n "$WHITELIST" ]; then
+    ESCAPED_WHITELIST=$(printf '%s\n' "$WHITELIST" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    sed -i "s|SERVICE_MANAGEMENT_WHITELIST=|SERVICE_MANAGEMENT_WHITELIST=$ESCAPED_WHITELIST|g" /etc/systemd/system/$SERVICE_NAME.service
+else
+    sed -i "s|SERVICE_MANAGEMENT_WHITELIST=|SERVICE_MANAGEMENT_WHITELIST=|g" /etc/systemd/system/$SERVICE_NAME.service
+fi
+
+if [ -n "$BLACKLIST" ]; then
+    ESCAPED_BLACKLIST=$(printf '%s\n' "$BLACKLIST" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    sed -i "s|SERVICE_MANAGEMENT_BLACKLIST=|SERVICE_MANAGEMENT_BLACKLIST=$ESCAPED_BLACKLIST|g" /etc/systemd/system/$SERVICE_NAME.service
+else
+    sed -i "s|SERVICE_MANAGEMENT_BLACKLIST=|SERVICE_MANAGEMENT_BLACKLIST=|g" /etc/systemd/system/$SERVICE_NAME.service
+fi
     echo -e "${GREEN}Токен установлен в systemd service файл${NC}"
 fi
 
