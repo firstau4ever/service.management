@@ -113,10 +113,14 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
     echo ""
     echo -e "${YELLOW}Параметры установки через переменные окружения:${NC}"
     echo -e "  ${GREEN}SERVICE_MANAGEMENT_TOKEN${NC} - Токен безопасности"
+    echo -e "  ${GREEN}SERVICE_MANAGEMENT_WHITELIST${NC} - Белый список сервисов (через запятую, например: nginx.service,apache2.service)"
+    echo -e "  ${GREEN}SERVICE_MANAGEMENT_BLACKLIST${NC} - Черный список сервисов (через запятую, например: ssh.service,systemd.service)"
     echo -e "  ${GREEN}SERVICE_MANAGEMENT_PORT${NC}   - Порт приложения"
     echo ""
     echo -e "${YELLOW}Примеры:${NC}"
     echo -e "  export SERVICE_MANAGEMENT_TOKEN=your_token"
+    echo -e "  export SERVICE_MANAGEMENT_WHITELIST=\"nginx.service,apache2.service\""
+    echo -e "  export SERVICE_MANAGEMENT_BLACKLIST=\"ssh.service,systemd.service\""
     echo -e "  export SERVICE_MANAGEMENT_PORT=5001"
     echo -e "  sudo ./deploy.sh"
     echo ""
@@ -380,6 +384,41 @@ echo -e "${GREEN}Порт настроен${NC}"
 echo -e "${YELLOW}ВАЖНО: Сохраните этот токен в безопасном месте!${NC}"
 echo -e "${YELLOW}TOKEN: $TOKEN${NC}"
 echo -e "${YELLOW}PORT: $APP_PORT${NC}\n"
+
+# Настройка белого и черного списков сервисов
+echo -e "${YELLOW}[5.1/7] Настройка списков сервисов (опционально)...${NC}"
+if [ -z "$SERVICE_MANAGEMENT_WHITELIST" ]; then
+    echo -e "${YELLOW}Белый список: разрешены только указанные сервисы (через запятую, например: nginx.service,apache2.service)${NC}"
+    echo -e "${YELLOW}Оставьте пустым если не нужен белый список:${NC}"
+    read WHITELIST_INPUT
+    if [ -z "$WHITELIST_INPUT" ]; then
+        WHITELIST=""
+        echo -e "${GREEN}Белый список не задан (все сервисы разрешены, если нет черного списка)${NC}"
+    else
+        WHITELIST="$WHITELIST_INPUT"
+        echo -e "${GREEN}Белый список установлен${NC}"
+    fi
+else
+    WHITELIST="$SERVICE_MANAGEMENT_WHITELIST"
+    echo -e "${GREEN}Белый список задан через переменную окружения${NC}"
+fi
+
+if [ -z "$SERVICE_MANAGEMENT_BLACKLIST" ]; then
+    echo -e "${YELLOW}Черный список: запрещены указанные сервисы (через запятую, например: ssh.service,systemd.service)${NC}"
+    echo -e "${YELLOW}Оставьте пустым если не нужен черный список:${NC}"
+    read BLACKLIST_INPUT
+    if [ -z "$BLACKLIST_INPUT" ]; then
+        BLACKLIST=""
+        echo -e "${GREEN}Черный список не задан${NC}"
+    else
+        BLACKLIST="$BLACKLIST_INPUT"
+        echo -e "${GREEN}Черный список установлен${NC}"
+    fi
+else
+    BLACKLIST="$SERVICE_MANAGEMENT_BLACKLIST"
+    echo -e "${GREEN}Черный список задан через переменную окружения${NC}"
+fi
+echo ""
 
 # Настройка sudoers для www-data
 echo -e "${YELLOW}[5.5/7] Настройка прав sudo для www-data...${NC}"

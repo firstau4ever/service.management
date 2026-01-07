@@ -9,6 +9,8 @@ Group=www-data
 WorkingDirectory=/opt/service-management
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/service-management/venv/bin"
 Environment="SERVICE_MANAGEMENT_TOKEN=CHANGE_THIS_TOKEN"
+Environment="SERVICE_MANAGEMENT_WHITELIST="
+Environment="SERVICE_MANAGEMENT_BLACKLIST="
 ExecStart=/opt/service-management/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 --timeout 60 app:app
 Restart=always
 RestartSec=10
